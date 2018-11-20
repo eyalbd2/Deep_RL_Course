@@ -1,21 +1,8 @@
 
-import gym
-import math
-import random
-import numpy as np
-import matplotlib.pyplot as plt
-from collections import namedtuple
+
 from itertools import count
-from PIL import Image
-
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from torch.autograd import Variable
-
-import torch.nn.functional as F
-import torchvision.transforms as T
-
 from utils import *
 
 
@@ -23,10 +10,10 @@ USE_CUDA = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
 
-OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
+dqn_OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
 
 
-def deep_Q_learning(env, architecture, optimizer_spec,
+def deep_Q_learning(env, architecture, optimizer_spec, encode_type,
                     exploration_params, replay_buffer_size=100000, start_learning=50000,
                     batch_size=128, gamma=0.99, target_update_freq=10000, save_fig=True):
     """
@@ -35,6 +22,7 @@ def deep_Q_learning(env, architecture, optimizer_spec,
     :param env: gym environment
     :param architecture: dict. with input_size, hidden_size and output_size (2-layer NN)
     :param optimizer_spec: optimizer and its params
+    :param encode_type: how to encode state - one_hot or ???
     :param exploration_params: dict. with final epsilon and num. of time steps until final epsilon
     :param replay_buffer_size: size of replay memory
     :param start_learning: num. iterations before start learning (filling the buffer)
@@ -65,22 +53,10 @@ def deep_Q_learning(env, architecture, optimizer_spec,
         if sample <= epsilon:
             return random.randrange(num_actions)
         else:
-            state = encode_states([state], num_states)
+            state = encode_states([state], num_states, encode_type)
             state = Variable(torch.from_numpy(state).type(dtype))
             return int(model(state).data.argmax())
 
-    def encode_states(states, num_states):
-        """
-        Gets an array of integers and returns their one-hot encoding
-
-        :param states: list of integers in [0,num_states-1]
-        :param num_states: total number of states in env (500)
-        :return: states_one_hot: one hot encoding of states
-        """
-        batch_size = len(states)
-        states_one_hot = np.zeros((batch_size, num_states))
-        states_one_hot[np.arange(batch_size), states] = 1
-        return states_one_hot
 
     num_actions = env.action_space.n
     num_states = env.observation_space.n
@@ -167,8 +143,8 @@ def deep_Q_learning(env, architecture, optimizer_spec,
             # Sample from experience buffer
             state_batch, action_batch, reward_batch, next_state_batch, done_mask = replay_buffer.sample(batch_size)
             # One-hot encoding of states
-            state_batch = encode_states(state_batch, num_states)
-            next_state_batch = encode_states(next_state_batch, num_states)
+            state_batch = encode_states(state_batch, num_states, encode_type)
+            next_state_batch = encode_states(next_state_batch, num_states, encode_type)
             # Convert numpy nd_array to torch variables for calculation
             state_batch = Variable(torch.from_numpy(state_batch).type(dtype))
             action_batch = Variable(torch.from_numpy(action_batch).long())

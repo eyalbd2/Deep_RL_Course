@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import namedtuple
 import matplotlib.pyplot as plt
+import torch
 
 Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 
@@ -68,6 +69,42 @@ class DQN(nn.Module):
         return self.out(x)
 
 
+class Policy(nn.Module):
+
+    def unpack_arch(self, architecture):
+        """
+        :param architecture: dict. containing num. of layers in every layer (2-layer FC network)
+        :return: input_size, hidden_size, output_size of NN
+        """
+
+        input_size = architecture["num_states"]
+        hidden_size = architecture["hidden_units"]
+        output_size = architecture["num_actions"]
+        return input_size, hidden_size, output_size
+
+    def __init__(self, architecture):
+        super(Policy, self).__init__()
+
+        num_states, hidden_units, num_actions = self.unpack_arch(architecture)
+
+        self.l1 = nn.Linear(num_states, hidden_units, bias=False)
+        self.l2 = nn.Linear(hidden_units, num_actions, bias=False)
+
+
+    def forward(self, x):
+
+        model = torch.nn.Sequential(
+            self.l1,
+            nn.Dropout(p=0.6),
+            nn.ReLU(),
+            self.l2,
+            nn.Softmax(dim=-1)
+        )
+        return model(x)
+
+
+
+
 def plot_rewards(reward_list, avg_reward_list, num_iterations, save=True):
 
     plt.plot(reward_list, color=(0, 0, 1, 0.3))
@@ -80,4 +117,20 @@ def plot_rewards(reward_list, avg_reward_list, num_iterations, save=True):
         plt.savefig('AccRewardVsEpisode_DQN')
     plt.pause(0.05)
     plt.clf()
+
+
+def encode_states(states, num_states, encode_type):
+    """
+    Gets an array of integers and returns their one-hot encoding
+
+    :param states: list of integers in [0,num_states-1]
+    :param num_states: total number of states in env (500)
+    :param encode_type: string - "one_hot" or "???"
+    :return: states_one_hot: one hot encoding of states
+    """
+    if encode_type == "one_hot":
+        batch_size = len(states)
+        states_one_hot = np.zeros((batch_size, num_states))
+        states_one_hot[np.arange(batch_size), states] = 1
+        return states_one_hot
 
