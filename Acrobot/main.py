@@ -18,12 +18,15 @@ padding = 1
 pool = 2
 replay_buffer_size = 1000000
 start_learning = 50000
+# replay_buffer_size = 20
+# start_learning = 20
+
 learning_rate = 0.00025
 alpha = 0.95
 eps = 0.01
 batch_size = 16
 gamma = 0.99
-target_update_freq = 10000
+target_update_freq = 500
 schedule_timesteps = 1000000
 final_eps = 0.1
 num_of_episodes = 100000

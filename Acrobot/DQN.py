@@ -2,7 +2,8 @@
 
 from itertools import count
 from torch.autograd import Variable
-from utills import *
+from utils import *
+
 
 
 USE_CUDA = torch.cuda.is_available()
@@ -89,12 +90,22 @@ def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, repla
         last_screen = current_screen
         current_screen = get_screen(env)
         next_state = current_screen - last_screen
+
+        # Construct priority for the current sample
+        # Q value for state-action pair that were taken
+        current_Q_value = Q(state)[0][action]
+        # Best Q values from next state - using Q_target as estimator
+        next_Q_value = Q_target(next_state).detach().max(1)[0]
+        # Compute estimated Q values (based on Q_target)
+        target_Q_value = reward + (gamma * next_Q_value)
+        # Compute Bellman error
+        bellman_error = target_Q_value - current_Q_value.squeeze()
+
         # document accumulated reward
         acc_episodic_reward = acc_episodic_reward + reward
         # Save and insert transition to replay buffer
-        transition = Transition(state=state, action=action, reward=reward,
-                                next_state=next_state, done=int(done))
-        replay_buffer.insert(transition)
+        transition = Transition(state=state, action=action, reward=reward, next_state=next_state, done=int(done))
+        replay_buffer.insert(transition, np.abs(bellman_error.data))
         # Resets the environment when reaching an episode boundary.
         if done:
             env.reset()
@@ -126,13 +137,15 @@ def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, repla
         # Perform experience replay and train the network.
         if t > start_learning and replay_buffer.can_sample(batch_size):
             # Sample from experience buffer
-            state_batch, action_batch, reward_batch, next_state_batch, done_mask = replay_buffer.sample(batch_size)
+            state_batch, action_batch, reward_batch, next_state_batch, done_mask, idxs_batch, is_weight = \
+                replay_buffer.sample(batch_size)
             # Convert numpy nd_array to torch variables for calculation
             state_batch = torch.cat(state_batch)
-            action_batch = Variable(torch.from_numpy(action_batch).long())
-            reward_batch = Variable(torch.from_numpy(reward_batch)).type(dtype)
+            action_batch = Variable(torch.tensor(action_batch))
+            reward_batch = Variable(torch.tensor(reward_batch)).type(dtype)
             next_state_batch = torch.cat(next_state_batch)
-            not_done_mask = Variable(torch.from_numpy(1 - done_mask)).type(dtype)
+            not_done_mask = Variable(1 - torch.FloatTensor(done_mask))
+            is_weight = Variable(torch.FloatTensor(is_weight))
 
             # Case GPU is available
             if USE_CUDA:
@@ -140,24 +153,25 @@ def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, repla
                 reward_batch = reward_batch.cuda()
 
             # Q values for state-action pair that were taken
-            current_Q_values = Q(state_batch).gather(1, action_batch.unsqueeze(1))
+            current_Q_values = Q(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze()
             # Best Q values from next state - using Q_target as estimator
             Q_max_next_state = Q_target(next_state_batch).detach().max(1)[0]
             # Update only when episode not terminated
             next_Q_values = not_done_mask * Q_max_next_state
             # Compute estimated Q values (based on Q_target)
             target_Q_values = reward_batch + (gamma * next_Q_values)
-            # Compute Bellman error
-            bellman_error = target_Q_values - current_Q_values.squeeze()
-            # Clip the bellman error between [-1 , 1] - gradient explosion
-            clipped_bellman_error = bellman_error.clamp(-1, 1)
-            # Note: clipped_bellman_delta * -1 will be right gradient (inner derivative)
-            d_error = clipped_bellman_error * -1.0
+            # Compute TD error
+            loss = (current_Q_values - target_Q_values.detach()).pow(2) * is_weight
+            prios = loss + 1e-5
+            loss = loss.mean()
             # Clear previous gradients before backward pass
             optimizer.zero_grad()
             # Run backward pass
-            current_Q_values.backward(d_error.data.unsqueeze(1))
-
+            loss.backward()
+            # update priority
+            for i in range(batch_size):
+                idx = idxs_batch[i]
+                replay_buffer.update(idx, prios[i].data.cpu().numpy())
             # Perform the update
             optimizer.step()
             num_param_updates += 1
