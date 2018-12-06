@@ -1,4 +1,3 @@
-
 # Imports
 import random
 import numpy as np
@@ -7,7 +6,7 @@ import torch.nn.functional as F
 from collections import namedtuple
 import matplotlib.pyplot as plt
 import torch
-import torchvision.transforms as T
+import torchvision
 from PIL import Image
 from SumTree import SumTree
 
@@ -165,17 +164,17 @@ def init_weights(m):
         nn.init.constant_(m.bias, 0.1)
 
 
-def plot_rewards(reward_list, avg_reward_list, num_iterations, save=True):
-
-    plt.plot(reward_list, color=(0, 0, 1, 0.3))
-    plt.plot(avg_reward_list, 'b')
-    plt.xlabel('# episodes')
-    plt.ylabel('# Acc. episodic reward')
-    plt.title('Accumulated episodic reward vs. num. of episodes, iterations=' + str(num_iterations+1))
-    if save:
-        plt.savefig('AccRewardVsEpisode_DQN')
-    plt.pause(0.05)
-    plt.clf()
+# def plot_rewards(reward_list, avg_reward_list, num_iterations, save=True):
+#
+#     plt.plot(reward_list, color=(0, 0, 1, 0.3))
+#     plt.plot(avg_reward_list, 'b')
+#     plt.xlabel('# episodes')
+#     plt.ylabel('# Acc. episodic reward')
+#     plt.title('Accumulated episodic reward vs. num. of episodes, iterations=' + str(num_iterations+1))
+#     if save:
+#         plt.savefig('AccRewardVsEpisode_DQN')
+#     plt.pause(0.05)
+#     plt.clf()
 
 
 def encode_states(states, num_states, encode_type):
@@ -192,9 +191,9 @@ def encode_states(states, num_states, encode_type):
         states_one_hot[np.arange(batch_size), states] = 1
         return states_one_hot
 
-resize = T.Compose([T.ToPILImage(),
-                    T.Resize(40, interpolation=Image.CUBIC),
-                    T.ToTensor()])
+resize = torchvision.transforms.Compose([torchvision.transforms.ToPILImage(),
+                                         torchvision.transforms.Resize(40, interpolation=Image.CUBIC),
+                                         torchvision.transforms.ToTensor()])
 def get_screen(env):
     screen = env.render(mode='rgb_array').transpose(
         (2, 0, 1))  # transpose into torch order (CHW)
@@ -208,3 +207,38 @@ def get_screen(env):
     # Resize, and add a batch dimension (BCHW)
     return resize(screen).unsqueeze(0).to(device)
 
+
+def plot_rewards(reward_arr, avg_reward_arr, stdev_reward_arr, save=True):
+
+    fig1 = plt.figure(1)
+    # rewards + average rewards
+    plt.plot(reward_arr, color='b', alpha=0.3)
+    plt.plot(avg_reward_arr, color='b')
+    plt.xlabel('# episodes')
+    plt.ylabel('Acc. episodic reward')
+    plt.title('Accumulated episodic reward vs. num. of episodes')
+    plt.legend(['Acc. episodic reward', 'Avg. acc. episodic reward'])
+    plt.tight_layout()
+
+    # average rewards + stdevs
+    fig2 = plt.figure(2)
+    plt.plot(avg_reward_arr, color='b')
+    plt.fill_between(range(1, len(avg_reward_arr)), avg_reward_arr[1:] - stdev_reward_arr,
+                     avg_reward_arr[1:] + stdev_reward_arr, color='b', alpha=0.2)
+    plt.xlabel('# episodes')
+    plt.ylabel('Acc. episodic reward')
+    plt.title('Accumulated episodic reward vs. num. of episodes')
+    plt.legend(['Avg. acc. episodic reward', 'Stdev envelope of acc. episodic reward'])
+    plt.tight_layout()
+
+    plt.pause(0.01)
+
+    if save:
+        fig1.savefig('AccRewardVsEpisode_DQN_32units')
+        fig2.savefig('AccRewardVsEpisode_DQN_32units_stdev')
+        np.save('rewards_32units', reward_arr)
+        np.save('avg_rewards_32units', avg_reward_arr)
+        np.save('stdev_rewards_32units', stdev_reward_arr)
+
+    fig1.clf()
+    fig2.clf()

@@ -1,5 +1,3 @@
-
-
 from itertools import count
 from torch.autograd import Variable
 from utils import *
@@ -8,9 +6,11 @@ from utils import *
 
 USE_CUDA = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, replay_buffer_size=100000,
-                    start_learning=50000, batch_size=128, gamma=0.99, target_update_freq=10000, save_fig=True):
+                    start_learning=50000, batch_size=128, gamma=0.99, target_update_freq=10000,
+                    save_fig=True, save_model=False):
     """
         Implementation of DQN learning procedure
     :param env: gym environment
@@ -42,16 +42,16 @@ def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, repla
 
         sample = random.random()
         if sample <= epsilon:
-            return random.randrange(num_actions)
+            return random.randrange(num_actions), epsilon
         else:
-            return int(model(Variable(state)).data.argmax())
+            return int(model(Variable(state)).data.argmax()), epsilon
 
 
     num_actions = env.action_space.n
 
     # Initialize network and target network
-    Q = CNN_NN_DQN(architecture)
-    Q_target = CNN_NN_DQN(architecture)
+    Q = CNN_NN_DQN(architecture).to(device)
+    Q_target = CNN_NN_DQN(architecture).to(device)
 
     # Construct optimizer
     optimizer = optimizer_spec.constructor(Q.parameters(), **optimizer_spec.kwargs)
@@ -62,28 +62,36 @@ def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, repla
     # Initialize episodic reward list
     episodic_rewards = []
     avg_episodic_rewards = []
+    stdev_episodic_rewards = []
+    best_avg_episodic_reward = -np.inf
     acc_episodic_reward = 0.0
 
-    ###############
-    # RUN ENV     #
-    ###############
     num_param_updates = 0
+    episodes_passed = 0
+    stopping_counter = 0
+
     _ = env.reset()
     current_screen = get_screen(env)
     state = current_screen
-    ## DEBUG ##
-    # last_t = 0
-    ## ##### ##
-    episodes_passed = 0
 
     for t in count():
-        # TODO: may add stopping criterion
+        # Stop if last average accumulated episodic reward over 10 episodes is above -150
+        if len(avg_episodic_rewards) > 0:
+            if avg_episodic_rewards[-1] > -115:
+                stopping_counter += 1
+                if stopping_counter >= 11:
+                    if save_model:
+                        torch.save(Q, 'stable_trained_Acrobot_model_v3')
+                    break
+            else:
+                stopping_counter = 0
 
         # Choose random action if not yet start learning
         if t > start_learning:
-            action = select_epsilon_greedy_action(Q, state, exploration_params, t - start_learning)
+            action, eps_val = select_epsilon_greedy_action(Q, state, exploration_params, t)
         else:
             action = random.randrange(num_actions)
+            eps_val = 1.0
 
         # Advance one step
         _, reward, done, _ = env.step(action)
@@ -94,7 +102,7 @@ def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, repla
         # Construct priority for the current sample
         # Q value for state-action pair that were taken
         current_Q_value = Q(state)[0][action]
-        # Best Q values from next state - using Q_target as estimator
+        # Best Q value from next state - using Q_target as estimator
         next_Q_value = Q_target(next_state).detach().max(1)[0]
         # Compute estimated Q values (based on Q_target)
         target_Q_value = reward + (gamma * next_Q_value)
@@ -107,30 +115,42 @@ def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, repla
         transition = Transition(state=state, action=action, reward=reward, next_state=next_state, done=int(done))
         replay_buffer.insert(transition, np.abs(bellman_error.data))
         # Resets the environment when reaching an episode boundary.
+
         if done:
-            env.reset()
+            # Resets the environment when finishing an episode
+            _ = env.reset()
             current_screen = get_screen(env)
             next_state = current_screen
 
-            ## DEBUG ##
-            # episode_len = t - last_t
-            # last_t = t
-            # if t % 1000:
-            # print(acc_episodic_reward, episode_len)
-
+            # Document statistics
             episodic_rewards.append(acc_episodic_reward)
             acc_episodic_reward = 0.0
             episodes_passed += 1
 
-            # Compute average reward
+            # Compute average reward and variance (standard deviation)
             if len(episodic_rewards) <= 10:
                 avg_episodic_rewards.append(np.mean(np.array(episodic_rewards)))
+                if len(episodic_rewards) >= 2:
+                    stdev_episodic_rewards.append(np.std(np.array(episodic_rewards)))
+
             else:
                 avg_episodic_rewards.append(np.mean(np.array(episodic_rewards[-10:])))
+                stdev_episodic_rewards.append(np.std(np.array(episodic_rewards[-10:])))
 
-            # Plot result every 100 episodes
+            # Check if average acc. reward has improved
+            if avg_episodic_rewards[-1] > best_avg_episodic_reward:
+                best_avg_episodic_reward = avg_episodic_rewards[-1]
+                if save_model:
+                    torch.save(Q, 'trained_Acrobot_model_v3')
+
+            # Update plot of acc. rewards every 20 episodes and print
+            # training details
             if episodes_passed % 20 == 0:
-                plot_rewards(episodic_rewards, avg_episodic_rewards, t, save_fig)
+                plot_rewards(np.array(episodic_rewards), np.array(avg_episodic_rewards),
+                             np.array(stdev_episodic_rewards), save_fig)
+                print('Episode {}\tAvg. Reward: {:.2f}\tEpsilon: {:.4f}\t'.format(
+                    episodes_passed, avg_episodic_rewards[-1], eps_val))
+                print('Best avg. episodic reward:', best_avg_episodic_reward)
 
         state = next_state
 
@@ -141,11 +161,11 @@ def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, repla
                 replay_buffer.sample(batch_size)
             # Convert numpy nd_array to torch variables for calculation
             state_batch = torch.cat(state_batch)
-            action_batch = Variable(torch.tensor(action_batch))
-            reward_batch = Variable(torch.tensor(reward_batch)).type(dtype)
+            action_batch = Variable(torch.tensor(action_batch).long())
+            reward_batch = Variable(torch.tensor(reward_batch, device=device)).type(dtype)
             next_state_batch = torch.cat(next_state_batch)
-            not_done_mask = Variable(1 - torch.FloatTensor(done_mask))
-            is_weight = Variable(torch.FloatTensor(is_weight))
+            not_done_mask = Variable(1 - torch.tensor(done_mask)).type(dtype)
+            is_weight = Variable(torch.tensor(is_weight)).type(dtype)
 
             # Case GPU is available
             if USE_CUDA:
@@ -187,4 +207,4 @@ def deep_Q_learning(env, architecture, optimizer_spec, exploration_params, repla
             # if len(episode_rewards) > 0:
             #     mean_episode_reward = np.mean(episode_rewards[-100:])
             # if len(episode_rewards) > 100:
-            #     best_mean_episode_reward = max(best_mean_episode_reward, mean_episode_reward)
+#     best_mean_episode_reward = max(best_mean_episode_reward, mean_episode_reward)

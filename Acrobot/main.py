@@ -1,8 +1,7 @@
-
 import gym
 import torch.optim as optim
 from DQN import OptimizerSpec, deep_Q_learning
-
+import time
 
 env = gym.make('Acrobot-v1')
 
@@ -16,20 +15,20 @@ kernel = 3
 stride = 1
 padding = 1
 pool = 2
-replay_buffer_size = 1000000
+replay_buffer_size = 100000
 start_learning = 50000
 # replay_buffer_size = 20
-# start_learning = 20
+# start_learning = 5
 
 learning_rate = 0.00025
 alpha = 0.95
 eps = 0.01
-batch_size = 16
+batch_size = 32
 gamma = 0.99
 target_update_freq = 500
-schedule_timesteps = 1000000
-final_eps = 0.1
-num_of_episodes = 100000
+schedule_timesteps = 250000
+final_eps = 0.03
+# num_of_episodes = 100000
 save_fig = True
 
 architecture = {"input_width": input_width, "input_height": input_height, "input_depth": input_depth,
@@ -42,8 +41,9 @@ exploration_params = {"timesteps": schedule_timesteps, "final_eps": final_eps}
 optimizer_spec = OptimizerSpec(constructor=optim.RMSprop,
                                kwargs=dict(lr=learning_rate, alpha=alpha, eps=eps),)
 
-
-
+start_time = time.time()
 deep_Q_learning(env, architecture, optimizer_spec, exploration_params, replay_buffer_size, start_learning,
                 batch_size, gamma, target_update_freq, save_fig)
+end_time = time.time()
 
+print('Tot. running time: ', end_time-start_time)
