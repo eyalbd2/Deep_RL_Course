@@ -19,6 +19,12 @@ directly the policy π(a|s) and the other to estimate the value function n Vˆ(s
 <p align="center">
   <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/actor_critic_image.JPG" width="400" title="Actor Critic Net">
 </p>
+Here we present the actor critic net with two outputs.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/CNN_acrobot.JPG" width="400" title="Acrobot CNN">
+</p>
+This is an illustration of the CNN we used for DQN with images representing states as input to the net.
 
 ## Getting Started
 
@@ -82,7 +88,27 @@ We have constructed some exrepiments for hyper parameters calibration and for st
 All results are shown in detail in the report we wrote, which is also in the main directory "Deep_RL_Course".
 We also present below some of our main experiments results.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/DQN_Taxi.JPG" width="400" title="Taxi DQN Converge">
+</p>
+Presented above is the Average accumulated episodic reward against number of episodes for different hidden layer dimensions for the Taxi agent using DQN.
 
+Next we will show the learning graph for the actor critic agent solvig taxi environment.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/ActorCriticConvergence.JPG" width="400" title="Actor Critic Converge">
+</p>
+The accumulated episodic reward and its average over the most recent 10
+episodes for the actor-critic model for both limiting and not limiting the episode’s
+length to 200 transitions in (a) and (b), respectively. Notice the scale difference.
+
+For the acrobot environment we present similar graphs as we demonstrated for actor critic. Here we used a PER, which speeded up the learning convergence.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/acrobot_result_convergence.JPG" width="400" title="Acrobot DQN">
+</p>
+Thee accumulated episodic reward and its average over the most recent 10
+episodes for the DQN model for the acrobot task presenting the episodic accumulated
+reward and its average over lat 10 episodes for each step in (a) and the average episodic
+accumulated reward together with its std over 10 episodes in (b).
 
 
 
