@@ -2,8 +2,9 @@
 
 In this project we solve two RL environments: "taxi-v2" and "acrobot-v0". We use Deep Reinforcement Learning methods to solve these tasks and we present our results in detail in the attached document "Deep_RL_HW".
 
-
-![](https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/acrobot-taxi-image.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/Images/master/acrobot-taxi-image.png" width="400" title="Acrobot Taxi">
+</p>
 
 
 The project implementation contain:
@@ -14,78 +15,81 @@ directly the policy π(a|s) and the other to estimate the value function n Vˆ(s
 4. DQN using CNN - to solve acrobot task we encode the current state to be a difference image between the current game board to the last game board, hence we use a convolutional neural network to learn Q value efficiently.
 5. We analyze our result, explore architectural parameters such as using dropout, max pooling, hidden state dimension, input different encoding (both for taxi and for acrobot), normalization relevance, etc.
 
-![alt text](https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/actor_critic_image.JPG)
 
-
-
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/Images/master/actor_critic_image.JPG" width="400" title="Actor Critic Net">
+</p>
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+- [ ] install and arrange an environment that meets the prerequisites (use below subsection)
+- [ ] we recommand installing pycharm and using it to further use the code 
+- [ ] clone this directory to your computer
+- [ ] you can use test codes to demonstrate the agent behavior per each task
+- [ ] use training codes to train the agent by yourself changing hyper parameters as you please
 
 ### Prerequisites
 
-What things you need to install the software and how to install them
+Before starting, make sure you already have the followings, if you don't - you should install before trying to use this code:
+- [ ] the code was tested only on python 3.6 
+- [ ] install gym
+- [ ] conda/anaconda packages
+- [ ] pytorch and torchvision - for implementation of FNN/CNN
+- [ ] matplotlib - for plots and for input encoding in acrobot task
+- [ ] numpy - for basic math and vectors operations
 
-```
-Give examples
-```
-
-### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
-```
-Give the example
-```
-
-And repeat
-
-```
-until finished
-```
-
-End with an example of getting some data out of the system or using it for a little demo
 
 ## Running the tests
+This project solves two tasks, hence for running a test the user should enter on of the sub-directoris ('taxi'\'acrobot') and run tests from there. 
 
-Explain how to run the automated tests for this system
+### Taxi
+First enter "Taxi" directory.
 
-### Break down into end to end tests
-
-Explain what these tests test and why
-
+#### DQN
+To train the DQN agent use the command:
 ```
-Give an example
+python DQN_train.py
 ```
-
-### And coding style tests
-
-Explain what these tests test and why
-
+And for teting the agent behaivior run the command:
 ```
-Give an example
+python DQN_test.py
 ```
 
-## Deployment
+#### Actor Critic
+To train the Actor Critic agent use the command:
+```
+python AC_train.py
+```
+And for teting the agent behaivior run the command:
+```
+python AC_test.py
+```
 
-Add additional notes about how to deploy this on a live system
+### Acrobot
+First enter "Acrobot" directory.
 
-## Built With
+To train the DQN using PER agent use the command:
+```
+python DQN_train.py
+```
+And for teting the agent behaivior run the command:
+```
+python DQN_test.py
+```
 
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
+## Results for tests
+We have constructed some exrepiments for hyper parameters calibration and for study.
+All results are shown in detail in the report we wrote, which is also in the main directory "Deep_RL_Course".
+We also present below some of our main experiments results.
+
+
+
 
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
 
-## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
 
 ## Authors
 
