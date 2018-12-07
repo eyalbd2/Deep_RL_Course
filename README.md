@@ -3,7 +3,7 @@
 In this project we solve two RL environments: "taxi-v2" and "acrobot-v0". We use Deep Reinforcement Learning methods to solve these tasks and we present our results in detail in the attached document "Deep_RL_HW".
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/Images/master/acrobot-taxi-image.png" width="400" title="Acrobot Taxi">
+  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/acrobot-taxi-image.png" width="400" title="Acrobot Taxi">
 </p>
 
 
@@ -17,7 +17,7 @@ directly the policy π(a|s) and the other to estimate the value function n Vˆ(s
 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/Images/master/actor_critic_image.JPG" width="400" title="Actor Critic Net">
+  <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/actor_critic_image.JPG" width="400" title="Actor Critic Net">
 </p>
 
 ## Getting Started
@@ -85,6 +85,8 @@ We also present below some of our main experiments results.
 
 
 
+
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
@@ -93,16 +95,17 @@ Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c6
 
 ## Authors
 
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
+* **Ron Dorfman** 
+* **Eyal Ben David** 
 
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License 
 
 ## Acknowledgments
 
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* DQN Basic Implementation - https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html 
+* Sum Tree implementation - https://github.com/jaromiru/AI-blog
+* Actor Critic implementation - 
+* Good easy explanation of PER - https://jaromiru.com/2016/11/07/lets-make-a-dqn-double-learning-and-prioritized-experience-replay/
