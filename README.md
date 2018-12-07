@@ -1,12 +1,18 @@
 # Deep_RL_Course
 
 In this project we solve two RL environments: "taxi-v2" and "acrobot-v0". We use Deep Reinforcement Learning methods to solve these tasks and we present our results in detail in the attached document "Deep_RL_HW".
+
+
 ![](https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/acrobot-taxi-image.png)
+
 
 The project implementation contain:
 1. DQN - solving Taxi env using both agent and target neural network, encoding the state to a 'one hot' input to the net. We explore also another input encoding, using taxi position, person position and final position for dropout.   
 2. Actor Critic - we use actor critic algorithm to lear a policy for the taxi environment. The policy is a probability taking a specific action given a current state. We suggest a fully connected network with two output head, one to learn
 directly the policy π(a|s) and the other to estimate the value function n Vˆ(s), as illustrated as illustrated below.
+3. Prioritized Experinecr Replay - we use PER method in order to speed up agent training session on acrobot task.
+4. DQN using CNN - to solve acrobot task we encode the current state to be a difference image between the current game board to the last game board, hence we use a convolutional neural network to learn Q value efficiently.
+5. We analyze our result, explore architectural parameters such as using dropout, max pooling, hidden state dimension, input different encoding (both for taxi and for acrobot), normalization relevance, etc.
 
 ![alt text](https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/actor_critic_image.JPG)
 
