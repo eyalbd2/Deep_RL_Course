@@ -1,5 +1,6 @@
 # Deep_RL_Course
 
+
 In this project we solve two RL environments: "taxi-v2" and "acrobot-v0". We use Deep Reinforcement Learning methods to solve these tasks and we present our results in detail in the attached document "Deep_RL_HW".
 
 <p align="center">
@@ -82,6 +83,9 @@ And for teting the agent behaivior run the command:
 ```
 python DQN_test.py
 ```
+
+The presented video below is an actual result of the code above 
+![alt text](./Images/acrobot_video.gif?raw=true)
 
 ## Results for tests
 We have constructed some exrepiments for hyper parameters calibration and for study.
