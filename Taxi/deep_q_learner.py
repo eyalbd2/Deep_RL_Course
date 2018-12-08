@@ -1,8 +1,9 @@
 
-
-from itertools import count
+# Imports
 import torch
+from itertools import count
 from torch.autograd import Variable
+import numpy as np
 from utils import *
 
 
@@ -10,62 +11,67 @@ USE_CUDA = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
 
-dqn_OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
-
-
-def deep_Q_learning(env, architecture, optimizer_spec, encode_type,
+def deep_Q_learning(env, architecture, optimizer_spec,
                     exploration_params, replay_buffer_size=100000, start_learning=50000,
-                    batch_size=128, gamma=0.99, target_update_freq=10000, save_fig=True):
+                    batch_size=128, gamma=0.99, target_update_freq=10000, regularization=None,
+                    encode_method='one_hot', save_fig=True, save_model=True):
+
     """
         Implementation of DQN learning procedure
-
+    
     :param env: gym environment
     :param architecture: dict. with input_size, hidden_size and output_size (2-layer NN)
     :param optimizer_spec: optimizer and its params
-    :param encode_type: how to encode state - one_hot or ???
     :param exploration_params: dict. with final epsilon and num. of time steps until final epsilon
     :param replay_buffer_size: size of replay memory
     :param start_learning: num. iterations before start learning (filling the buffer)
     :param batch_size: batch size for optimization steps
     :param gamma: discount factor of MDP
     :param target_update_freq: num. of iterations between target network update
+    :param save_fig: whether to save figure of reward vs. # episode
 
         Algorithm saves a trained network
     """
 
     def select_epsilon_greedy_action(model, state, exploration_params, t):
         """
+            Function returns an action using epsilon greedy with linear
+            annealing schedule (starting from 1 and annealing linearly
+            till exploration_params["final_eps"])
+
 
         :param model: Q network
         :param state: current state of env
         :param exploration_params: final epsilon and num. timesteps until final epsilon
-        :param t: current timestep
-        :return: Algorithm returns an action chosen by an epsilon greedy policy
+        :param t: current time-step
+        :return: an action chosen by an epsilon greedy policy
         """
         # Compute current epsilon
-        fraction = min(1.0, float(t ) /exploration_params["timesteps"])
-        epsilon = 1 + fraction *(exploration_params["final_eps"] - 1)
+        fraction = min(1.0, float(t)/exploration_params["timesteps"])
+        epsilon = 1 + fraction*(exploration_params["final_eps"] - 1)
 
         num_actions = model.out.out_features    # output size of Q network is as action space
-        num_states = list(model.children())[0].in_features
+        state_dim = list(model.children())[0].in_features
 
         sample = random.random()
         if sample <= epsilon:
-            return random.randrange(num_actions)
+            return random.randrange(num_actions), epsilon
         else:
-            state = encode_states([state], num_states, encode_type)
+            state = encode_states([state], encode_method, state_dim)
             state = Variable(torch.from_numpy(state).type(dtype))
-            return int(model(state).data.argmax())
+            return int(model(state).data.argmax()), epsilon
 
-
-    num_actions = env.action_space.n
-    num_states = env.observation_space.n
+    num_actions = env.action_space.n        # action space (=6)
+    state_dim = architecture['state_dim']   # state space (=depends on encoding - 500/19)
 
     # Initialize network and target network
-    Q = DQN(architecture)
-    Q_target = DQN(architecture)
+    is_dropout = False
+    if regularization is 'dropout':
+        is_dropout = True
+    Q = DQN(architecture, is_dropout)
+    Q_target = DQN(architecture, is_dropout)
 
-    # Construct optimizer
+    # Construct optimizer over the networks weights
     optimizer = optimizer_spec.constructor(Q.parameters(), **optimizer_spec.kwargs)
 
     # Construct the replay buffer
@@ -74,78 +80,89 @@ def deep_Q_learning(env, architecture, optimizer_spec, encode_type,
     # Initialize episodic reward list
     episodic_rewards = []
     avg_episodic_rewards = []
+    stdev_episodic_rewards = []
     acc_episodic_reward = 0.0
+    best_avg_episodic_reward = -np.inf
 
     ###############
     # RUN ENV     #
     ###############
     num_param_updates = 0
     state = env.reset()
-
-    ## DEBUG ##
-    # last_t = 0
-    ## ##### ##
     episodes_passed = 0
+    last_t = 0  # to track episodes length
 
     for t in count():
-        ## Check stopping criterion
-        # if stopping_criterion is not None and stopping_criterion(env):
-        #     break
-        ## Stopping criterion
-        if episodes_passed > 300:
+        # Stopping criterion - max num. episodes
+        if episodes_passed > 3000:
             break
-
 
         # Choose random action if not yet start learning
         if t > start_learning:
-            action = select_epsilon_greedy_action(Q, state, exploration_params, t - start_learning)
+            action, eps_val = select_epsilon_greedy_action(Q, state, exploration_params, t)
         else:
             action = random.randrange(num_actions)
+            eps_val = 1
 
-        # Advance one step
+        # s_enc = encode_states([state], encode_method, state_dim)
+        # if s_enc[0][14] == 1:
+        #     env.render()
+
+        # Take action over env.
         next_state, reward, done, _ = env.step(action)
-        # document accumulated reward
+        # Document accumulated reward
         acc_episodic_reward = acc_episodic_reward + reward
         # Save and insert transition to replay buffer
         transition = Transition(state=state, action=action, reward=reward,
                                 next_state=next_state, done=int(done))
         replay_buffer.insert(transition)
-        # Resets the environment when reaching an episode boundary.
+
         if done:
+            # Resets the environment when finishing an episode
             next_state = env.reset()
-
-            ## DEBUG ##
-            # episode_len = t - last_t
-            # last_t = t
-            # if t % 1000:
-            # print(acc_episodic_reward, episode_len)
-
+            # Document statistics
             episodic_rewards.append(acc_episodic_reward)
             acc_episodic_reward = 0.0
             episodes_passed += 1
 
-            # Compute average reward
+            # Compute average reward and variance (standard deviation)
             if len(episodic_rewards) <= 10:
                 avg_episodic_rewards.append(np.mean(np.array(episodic_rewards)))
+                if len(episodic_rewards) >= 2:
+                    stdev_episodic_rewards.append(np.std(np.array(episodic_rewards)))
+
             else:
                 avg_episodic_rewards.append(np.mean(np.array(episodic_rewards[-10:])))
+                stdev_episodic_rewards.append(np.std(np.array(episodic_rewards[-10:])))
 
-            # Plot result every 100 episodes
+
+            # Check if average acc. reward has improved
+            if avg_episodic_rewards[-1] > best_avg_episodic_reward:
+                best_avg_episodic_reward = avg_episodic_rewards[-1]
+                if save_model:
+                    torch.save(Q, 'trained_DQN_model')
+
+            # Update plot of acc. rewards every 20 episodes and print
+            # training details
             if episodes_passed % 20 == 0:
-                plot_rewards(episodic_rewards, avg_episodic_rewards, t, save_fig)
+                plot_rewards(np.array(episodic_rewards), np.array(avg_episodic_rewards),
+                             np.array(stdev_episodic_rewards), save_fig)
+                print('Episode {}\tLast episode length: {:5d}\tAvg. Reward: {:.2f}\tEpsilon: {:.4f}\t'.format(
+                    episodes_passed, t - last_t, avg_episodic_rewards[-1], eps_val))
+                print('Best avg. episodic reward:', best_avg_episodic_reward)
+
+            last_t = t
 
         state = next_state
 
-
-
-        # Perform experience replay and train the network.
+        # Train network by sampling from experience buffer
         if t > start_learning and replay_buffer.can_sample(batch_size):
             # Sample from experience buffer
             state_batch, action_batch, reward_batch, next_state_batch, done_mask = replay_buffer.sample(batch_size)
             # One-hot encoding of states
-            state_batch = encode_states(state_batch, num_states, encode_type)
-            next_state_batch = encode_states(next_state_batch, num_states, encode_type)
-            # Convert numpy nd_array to torch variables for calculation
+            state_batch = encode_states(state_batch, encode_method, state_dim)
+            next_state_batch = encode_states(next_state_batch, encode_method, state_dim)
+            # Convert numpy nd_array to torch Variables for calculation
             state_batch = Variable(torch.from_numpy(state_batch).type(dtype))
             action_batch = Variable(torch.from_numpy(action_batch).long())
             reward_batch = Variable(torch.from_numpy(reward_batch)).type(dtype)
@@ -165,31 +182,42 @@ def deep_Q_learning(env, architecture, optimizer_spec, encode_type,
             next_Q_values = not_done_mask * Q_max_next_state
             # Compute estimated Q values (based on Q_target)
             target_Q_values = reward_batch + (gamma * next_Q_values)
-            # Compute Bellman error
-            bellman_error = target_Q_values - current_Q_values.squeeze()
-            # Clip the bellman error between [-1 , 1] - gradient explosion
-            clipped_bellman_error = bellman_error.clamp(-1, 1)
-            # Note: clipped_bellman_delta * -1 will be right gradient (inner derivative)
-            d_error = clipped_bellman_error * -1.0
-            # Clear previous gradients before backward pass
-            optimizer.zero_grad()
-            # Run backward pass
-            current_Q_values.backward(d_error.data.unsqueeze(1))
 
-            # Perform the update
-            optimizer.step()
+            # Compute MSE loss (of bellman error)
+            loss = F.mse_loss(current_Q_values, target_Q_values.unsqueeze(1))
+            # Case regularization
+            if regularization is 'l1':
+                l1_regularization = torch.tensor(0).type(dtype)
+                for param in Q.parameters():
+                    l1_regularization += torch.norm(param, 1)
+                    # add l1 regularization to loss
+                loss += 0.05*l1_regularization
+
+            # Optimize the model
+            optimizer.zero_grad()
+            loss.backward()
+            # Clip the bellman error between [-1 , 1] - prevent gradient explosion
+            for param in Q.parameters():
+                param.grad.data.clamp_(-1, 1)
+            optimizer.step()    # perform the update
+
+
+            # # Compute Bellman error
+            # bellman_error = target_Q_values - current_Q_values.squeeze()
+            # # Clip the bellman error between [-1 , 1] - prevent gradient explosion
+            # clipped_bellman_error = bellman_error.clamp(-1, 1)
+            # # Note: clipped_bellman_delta * -1 will be right gradient
+            # d_error = clipped_bellman_error * -1.0
+            # # Clear previous gradients before backward pass
+            # optimizer.zero_grad()
+            # # Run backward pass
+            # current_Q_values.backward(d_error.data.unsqueeze(1))
+            # optimizer.step()    # perform the update
+
             num_param_updates += 1
 
-            # Periodically update the target network by Q network to Q_target network
+            # Periodically update the target network by copying Q network into Q target
             if num_param_updates % target_update_freq == 0:
                 Q_target.load_state_dict(Q.state_dict())
 
-
-            # Document statistics
-            # episode_rewards = []
-            #
-            # if len(episode_rewards) > 0:
-            #     mean_episode_reward = np.mean(episode_rewards[-100:])
-            # if len(episode_rewards) > 100:
-            #     best_mean_episode_reward = max(best_mean_episode_reward, mean_episode_reward)
 
