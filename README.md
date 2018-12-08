@@ -1,20 +1,20 @@
 # Deep_RL_Course
 
 
-In this project we solve two RL environments: "taxi-v2" and "acrobot-v1". We use Deep Reinforcement Learning methods to solve these tasks and we present our results in detail in the attached document "Deep_RL_HW".
+This project solves two RL environments: "taxi-v2" and "acrobot-v1". For solving those tasks, we use Deep Reinforcement Learning methods with our results presented in detail in the attached document "Deep_RL_HW".
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/acrobot-taxi-image.png" width="400" title="Acrobot Taxi">
 </p>
 
 
-The project implementation contain:
-1. DQN - solving Taxi env using both agent and target neural network, encoding the state to a 'one hot' input to the net. We explore also another input encoding, using taxi position, person position and final position for dropout.   
-2. Actor Critic - we use actor critic algorithm to lear a policy for the taxi environment. The policy is a probability taking a specific action given a current state. We suggest a fully connected network with two output head, one to learn
-directly the policy π(a|s) and the other to estimate the value function n Vˆ(s), as illustrated as illustrated below.
-3. Prioritized Experinecr Replay - we use PER method in order to speed up agent training session on acrobot task.
-4. DQN using CNN - to solve acrobot task we encode the current state to be a difference image between the current game board to the last game board, hence we use a convolutional neural network to learn Q value efficiently.
-5. We analyze our result, explore architectural parameters such as using dropout, max pooling, hidden state dimension, input different encoding (both for taxi and for acrobot), normalization relevance, etc.
+The project implementation contains:
+1.	DQN - solving Taxi env using both agent and target neural network, encoding the state to a 'one hot' input to the net. Additionally we explore another input encoding, using taxi position, person position and final position for dropout.
+2.	Actor Critic - we use actor critic algorithm to learn a policy for the taxi environment. The policy is a probability taking a specific action in a current state. We suggest a fully connected network with two output heads. The first, to learn directly the policy π(a|s) and the other to estimate the value function n Vˆ(s), as illustrated below.
+3.	Prioritized Experience Replay - we use PER method in order to speed up agent training session on acrobot task.
+4.	DQN using CNN – In order to solve the acrobot task we encode the current state image as the difference between the current game board to the last game board, hence we use a convolutional neural network to learn Q value efficiently.
+5.	We analyze our results, explore architectural parameters such as using dropout, max pooling, hidden state dimension, input different encoding (both for taxi and for acrobot), normalization relevance, etc.
+
 
 
 <p align="center">
@@ -30,9 +30,9 @@ This is an illustration of the CNN we used for DQN with images representing stat
 ## Getting Started
 
 - [ ] install and arrange an environment that meets the prerequisites (use below subsection)
-- [ ] we recommand installing pycharm and using it to further use the code 
+- [ ] we recommend installing pycharm and using it to further use the code
 - [ ] clone this directory to your computer
-- [ ] you can use test codes to demonstrate the agent behavior per each task
+- [ ] you can use test codes to demonstrate the agent behavior per task
 - [ ] use training codes to train the agent by yourself changing hyper parameters as you please
 
 ### Prerequisites
@@ -47,7 +47,7 @@ Before starting, make sure you already have the followings, if you don't - you s
 
 
 ## Running the tests
-This project solves two tasks, hence for running a test the user should enter on of the sub-directoris ('taxi'\'acrobot') and run tests from there. 
+This project solves two tasks, hence for running a test the user should enter on of the sub-directories ('taxi''acrobot') and run tests from there.
 
 ### Taxi
 First enter "Taxi" directory.
@@ -88,9 +88,7 @@ The presented video below is an actual result of the code above
 ![alt text](./Images/acrobot_video.gif?raw=true)
 
 ## Results for tests
-We have constructed some exrepiments for hyper parameters calibration and for study.
-All results are shown in detail in the report we wrote, which is also in the main directory "Deep_RL_Course".
-We also present below some of our main experiments results.
+We have constructed some experiments for hyper parameters calibration and for study. All results are shown in detail in the report we wrote, which is also in the main directory "Deep_RL_Course". We also present below some of our main results.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/DQN_Taxi.JPG" width="400" title="Taxi DQN Converge">
@@ -101,18 +99,15 @@ Next we will show the learning graph for the actor critic agent solvig taxi envi
 <p align="center">
   <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/ActorCriticConvergence.JPG" width="400" title="Actor Critic Converge">
 </p>
-The accumulated episodic reward and its average over the most recent 10
-episodes for the actor-critic model for both limiting and not limiting the episode’s
-length to 200 transitions in (a) and (b), respectively. Notice the scale difference.
+The accumulated episodic reward and its average over the most recent 10 episodes for the actor-critic model for both limiting and non- limited episode’s length to 200 transitions in (a) and (b), respectively. Notice the scale difference.
+For the acrobot environment we present similar graphs as we demonstrated for actor critic. Here we used a PER, which speeded up the learning convergence.
+
 
 For the acrobot environment we present similar graphs as we demonstrated for actor critic. Here we used a PER, which speeded up the learning convergence.
 <p align="center">
   <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/acrobot_result_convergence.JPG" width="400" title="Acrobot DQN">
 </p>
-Thee accumulated episodic reward and its average over the most recent 10
-episodes for the DQN model for the acrobot task presenting the episodic accumulated
-reward and its average over lat 10 episodes for each step in (a) and the average episodic
-accumulated reward together with its std over 10 episodes in (b).
+The accumulated episodic reward and its average over the most recent 10 episodes for the DQN model for the acrobot task presenting the episodic accumulated reward and its average over last 10 episodes for each step in (a) and the average episodic accumulated reward together with its std over 10 episodes in (b).
 
 
 
