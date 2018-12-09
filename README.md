@@ -1,7 +1,6 @@
-# Deep_RL_Course
+# Advanced Topics in Reinforcement Learning (048716) 
 
-
-This project solves two RL environments: "taxi-v2" and "acrobot-v1". For solving those tasks, we use Deep Reinforcement Learning methods with our results presented in detail in the attached document "Deep_RL_HW".
+In this project we solve two RL environments: "taxi-v2" and "acrobot-v1". For solving those tasks, we use Deep Reinforcement Learning methods with our results presented in detail in the attached document "Deep_RL_HW".
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/eyalbd2/Deep_RL_Course/master/Images/acrobot-taxi-image.png" width="400" title="Acrobot Taxi">
